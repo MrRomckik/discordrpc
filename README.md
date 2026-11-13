@@ -1,79 +1,59 @@
 # DiscordRPC
 
-Show your coding activity in Discord Rich Presence. DiscordRPC detects a supported IDE running on your computer and displays its name and the active window title as your Discord status.
-
-> **Platform note:** The original `discord_status.py` uses Windows process names and `pygetwindow`. The macOS implementation is separate and has not yet been verified on a Mac. See [Known limitations](#known-limitations).
+A small Windows desktop app that shows your active development environment in Discord Rich Presence.
 
 ## Features
 
-- Discord Rich Presence for supported development environments
-- Displays the IDE and a shortened active-window title
-- Checks for activity periodically and clears the status when no supported IDE is detected
-- Separate entry points for Windows and macOS
+- Simple graphical interface: start and stop monitoring without using a terminal
+- Detects the foreground window for supported IDEs
+- Updates Discord when the active IDE or window changes
+- Optional privacy mode to avoid publishing the window/file title
 
-## Supported IDEs
+## Supported IDEs on Windows
 
-The Windows script includes process detection for IntelliJ IDEA, PyCharm, Visual Studio Code, Visual Studio, Eclipse, NetBeans, Sublime Text, Atom, Notepad++, CLion, Rider, WebStorm, GoLand, RubyMine, Android Studio, PhpStorm, and DataGrip.
-
-The macOS script uses application bundle identifiers. Its supported-app list may need adjustments for specific IDE versions or installations.
+IntelliJ IDEA, PyCharm, Visual Studio Code, Visual Studio, Eclipse, NetBeans, Sublime Text, Atom, Notepad++, CLion, Rider, WebStorm, GoLand, RubyMine, Android Studio, PhpStorm, and DataGrip.
 
 ## Requirements
 
-- Python 3
+- Windows 10 or later
 - Discord desktop application running
-- A Discord application configured for Rich Presence, with the image assets used by this project uploaded to it
+- Python 3.10 or later, if running from source
 
-## Setup
+## Run from source
 
-Clone the repository and install the dependencies:
-
-```bash
+```powershell
 git clone https://github.com/MrRomckik/discordrpc.git
 cd discordrpc
 python -m venv .venv
-```
-
-Activate the virtual environment, then install the packages required by the Windows version:
-
-```powershell
 .venv\Scripts\Activate.ps1
-python -m pip install psutil pygetwindow pypresence
-```
-
-On macOS, install the packages for its separate implementation:
-
-```bash
-source .venv/bin/activate
-python -m pip install pypresence pyobjc-framework-Cocoa pyobjc-framework-Quartz
-```
-
-## Run
-
-On Windows:
-
-```bash
+python -m pip install -r requirements.txt
 python discord_status.py
 ```
 
-On macOS:
+The app opens a window. Click **Запустить** to connect to Discord and begin monitoring. Enable the privacy checkbox before starting if you do not want the active window title sent to Discord. Click **Остановить** to clear the presence and stop monitoring.
 
-```bash
-python discord_status_macos.py
+## Build a standalone Windows executable
+
+Build on Windows with Python installed:
+
+```powershell
+python -m pip install pyinstaller
+pyinstaller --onefile --windowed --name DiscordRPC discord_status.py
 ```
 
-Press `Ctrl+C` in the terminal to stop the script.
+The executable will be at `dist\DiscordRPC.exe`. The `--windowed` option prevents a console window from appearing, so it launches as a normal GUI application. You can copy the executable somewhere convenient or create a shortcut to it.
 
 ## Privacy
 
-The status can include text taken from the IDE's window title. Review what your IDE displays in its title bar before running the app, especially if it may contain private project or file names. The macOS script shortens the title to its final path component, but window-title detection may vary by application.
+Without privacy mode, the app may send the active IDE window title to Discord. Window titles can include project or file names. With privacy mode enabled, it sends a generic activity label instead. The setting applies for that monitoring session and is not saved.
 
 ## Known limitations
 
-- IDE and window detection depends on operating-system APIs and application window titles; results can vary between versions.
-- The macOS implementation has not been tested on a physical Mac. Permissions, bundle identifiers, and window-title availability may affect detection.
-- A standalone executable or macOS disk image is not currently provided by this README; build and test instructions will be added after platform-specific packaging is verified.
-- This project is provided as a Python script and may require troubleshooting on your system.
+- This GUI app and `discord_status.py` are Windows-specific.
+- `discord_status_macos.py` is a separate experimental script and is not covered by this GUI or Windows build instructions; it has not been verified on a physical Mac.
+- IDE window-title formats can differ, so the displayed title may not always be the current file name.
+- Windows may show a security warning for an unsigned executable. Do not download binaries from unofficial sources.
 
 ## Contributing
 
-Bug reports and suggestions are welcome. When reporting an issue, include your operating system, Python version, IDE, and the relevant error output. Please avoid posting private project or file names.
+Bug reports and suggestions are welcome. Include your Windows version, Python version, IDE, and relevant error output. Please avoid posting private project or file names.
