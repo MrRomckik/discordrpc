@@ -32,17 +32,6 @@ python discord_status.py
 
 The app opens a window. Click **Запустить** to connect to Discord and begin monitoring. Enable the privacy checkbox before starting if you do not want the active window title sent to Discord. Click **Остановить** to clear the presence and stop monitoring.
 
-## Build a standalone Windows executable
-
-Build on Windows with Python installed:
-
-```powershell
-python -m pip install pyinstaller
-pyinstaller --onefile --windowed --name DiscordRPC discord_status.py
-```
-
-The executable will be at `dist\DiscordRPC.exe`. The `--windowed` option prevents a console window from appearing, so it launches as a normal GUI application. You can copy the executable somewhere convenient or create a shortcut to it.
-
 ## Privacy
 
 Without privacy mode, the app may send the active IDE window title to Discord. Window titles can include project or file names. With privacy mode enabled, it sends a generic activity label instead. The setting applies for that monitoring session and is not saved.
