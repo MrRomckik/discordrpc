@@ -12,7 +12,7 @@ import psutil
 from pypresence import Presence
 
 CLIENT_ID = 1518228891406176408
-POLL_INTERVAL = 5
+POLL_INTERVAL = 1
 
 IDE_PROCESSES = {
     "idea64.exe": ("IntelliJ IDEA", "idea_logo"),
@@ -91,6 +91,7 @@ class DiscordRPCApp:
 
         self.events = queue.Queue()
         self.stop_event = threading.Event()
+        self.privacy_mode = threading.Event()
         self.worker = None
         self.closing = False
 
@@ -120,6 +121,7 @@ class DiscordRPCApp:
             main,
             text="Не показывать название файла/окна в Discord",
             variable=self.hide_title_var,
+            command=self._on_privacy_toggle,
         ).pack(anchor="w", pady=(12, 8))
 
         buttons = ttk.Frame(main)
@@ -139,12 +141,18 @@ class DiscordRPCApp:
         self.log.see("end")
         self.log.configure(state="disabled")
 
+    def _on_privacy_toggle(self):
+        if self.hide_title_var.get():
+            self.privacy_mode.set()
+        else:
+            self.privacy_mode.clear()
+
     def start(self):
         if self.worker and self.worker.is_alive():
             return
+        self._on_privacy_toggle()
         self.stop_event.clear()
-        hide_title = self.hide_title_var.get()
-        self.worker = threading.Thread(target=self._monitor, args=(hide_title,), daemon=True)
+        self.worker = threading.Thread(target=self._monitor, daemon=True)
         self.worker.start()
         self.start_button.configure(state="disabled")
         self.stop_button.configure(state="normal")
@@ -157,11 +165,12 @@ class DiscordRPCApp:
             self.stop_button.configure(state="disabled")
             self.status_var.set("Остановка...")
 
-    def _monitor(self, hide_title):
+    def _monitor(self):
         rpc = Presence(CLIENT_ID)
         connected = False
         current_status = None
         start_time = int(time.time())
+        next_poll = time.monotonic()
 
         try:
             rpc.connect()
@@ -180,7 +189,9 @@ class DiscordRPCApp:
                         self.events.put(("log", "Активное окно IDE не найдено."))
                 else:
                     app_name, image_key, window_title = active
-                    displayed_title = "Работает над проектом" if hide_title else window_title
+                    displayed_title = (
+                        "Работает над проектом" if self.privacy_mode.is_set() else window_title
+                    )
                     new_status = (app_name, displayed_title)
                     if new_status != current_status:
                         rpc.update(
@@ -194,7 +205,14 @@ class DiscordRPCApp:
                         self.events.put(("status", f"Активно: {app_name} — {displayed_title}"))
                         self.events.put(("log", f"[ACTIVE] {app_name} — {displayed_title}"))
 
-                self.stop_event.wait(POLL_INTERVAL)
+                next_poll += POLL_INTERVAL
+                delay = next_poll - time.monotonic()
+                if delay < 0:
+                    # If a poll took longer than expected, resume from now rather than
+                    # running multiple immediate polls to catch up.
+                    next_poll = time.monotonic()
+                    delay = 0
+                self.stop_event.wait(delay)
         except Exception as exc:
             self.events.put(("error", f"Не удалось подключиться или обновить статус: {exc}"))
         finally:
